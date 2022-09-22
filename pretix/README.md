@@ -43,7 +43,7 @@ sudo chown -R pretix:pretix /etc/pretix/
 
 ```bash
 sudo apt update; sudo apt dist-upgrade; sudo reboot
-sudo apt install -y git build-essential python3-dev libxml2-dev libxslt1-dev libffi-dev zlib1g-dev libssl-dev gettext libpq-dev libjpeg-dev libopenjp2-7-dev python3-virtualenv python3-pip postgresql-client python3.10-venv libmemcached-devgi redis-tools python-is-python3 wget gnupg2 ca-certificates lsb-release ubuntu-keyring software-properties-common nodejs certbot python3-certbot-nginx
+sudo apt install -y git build-essential python3-dev libxml2-dev libxslt1-dev libffi-dev zlib1g-dev libssl-dev gettext libpq-dev libjpeg-dev libopenjp2-7-dev python3-virtualenv python3-pip postgresql-client python3.10-venv redis-tools python-is-python3 wget gnupg2 ca-certificates lsb-release ubuntu-keyring software-properties-common nodejs certbot python3-certbot-nginx
 ```
 
 ### Install NPM
@@ -110,6 +110,8 @@ sudo chown pretix:pretix /etc/pretix/pretix.cfg
 #### Login as the pretix user
 
 `sudo su - pretix`
+
+#### as pretix user
 
 ```bash
 python3 -m venv /app/pretix/venv

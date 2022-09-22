@@ -1,0 +1,16 @@
+[Unit]
+Description=pretalx web service
+After=network.target
+
+[Service]
+User=pretalx
+Group=pretalx
+WorkingDirectory=/app/pretalx/.local/lib/python3.10/site-packages/pretalx
+ExecStart=/app/pretalx/.local/bin/gunicorn pretalx.wsgi \
+                      --name pretalx --workers 4 \
+                      --max-requests 1200  --max-requests-jitter 50 \
+                      --log-level=info --bind=127.0.0.1:8345
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

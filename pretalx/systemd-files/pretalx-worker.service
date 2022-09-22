@@ -1,0 +1,14 @@
+[Unit]
+Description=pretalx background worker
+After=network.target
+
+[Service]
+User=pretalx
+Group=pretalx
+WorkingDirectory=/app/pretalx/.local/lib/python3.10/site-packages/pretalx
+ExecStart=/app/pretalx/.local/bin/celery -A pretalx.celery_app worker -l info
+WorkingDirectory=/app/pretalx
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
