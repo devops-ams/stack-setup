@@ -1,0 +1,16 @@
+[Unit]
+Description=Runs the periodic task for Pretix
+Wants=pretix-periodic.timer
+After=pretix-worker.service
+
+[Service]
+Type=oneshot
+User=pretix
+Group=pretix
+Environment="VIRTUAL_ENV=/app/pretix/venv"
+Environment="PATH=/app/pretix/venv/bin:/usr/local/bin:/usr/bin:/bin"
+WorkingDirectory=/app/pretix
+ExecStart=/app/pretix/venv/bin/python -m pretix runperiodic
+
+[Install]
+WantedBy=multi-user.target
