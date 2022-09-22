@@ -1,0 +1,10 @@
+[Unit]
+Description=Runs the periodic task for Pretix
+Requires=pretix-periodic.service
+
+[Timer]
+Unit=pretix-periodic.service
+OnCalendar=*:0/15
+
+[Install]
+WantedBy=timers.target
