@@ -1,0 +1,10 @@
+[Unit]
+Description=Runs the periodic task for Pretalx
+Requires=pretalx-periodic.service
+
+[Timer]
+Unit=pretalx-periodic.service
+OnCalendar=*:0/15
+
+[Install]
+WantedBy=timers.target

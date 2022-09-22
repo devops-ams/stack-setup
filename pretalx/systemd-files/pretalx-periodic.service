@@ -1,0 +1,15 @@
+[Unit]
+Description=Runs the periodic task for pretalx
+Wants=pretalx-periodic.timer
+After=pretalx-worker.service
+
+[Service]
+Type=oneshot
+User=pretalx
+Group=pretalx
+Environment=PATH=/app/pretalx/.local/lib/python3.10/site-packages:$PATH
+WorkingDirectory=/app/pretalx
+ExecStart=/usr/bin/python -m pretalx runperiodic
+
+[Install]
+WantedBy=multi-user.target
