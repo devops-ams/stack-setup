@@ -16,7 +16,6 @@ ElastiCache, Redis 6.2.6, cache.t4g.micro
   - Port 443: 0.0.0.0/0 (HTTPS)
   - Port 5432: SG only (Postgres)
   - Port 6379: SG only (Redis)
-  - Port 8345: SG only (Pretalx)
 
 ## Instance setup (as ubuntu user)
 
