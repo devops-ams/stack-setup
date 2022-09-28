@@ -14,12 +14,10 @@ Aurora RDS, Postgres 14.3, db.t4g.medium
   - Port 80: 0.0.0.0/0 (HTTP)
   - Port 443: 0.0.0.0/0 (HTTPS)
   - Port 5432: SG only (Postgres)
-  - Port 6379: SG only (Redis)
-  - Port 8345: SG only (Pretix)
 
 ## Collecting additional information
 
-This setup depends on quite a number of secrets in order to automate SSL renewal, domain names being updated, providing a secure login and email being delivered. 
+This setup depends on quite a number of secrets in order to automate SSL renewal, domain names being updated, providing a secure login and email being delivered.
 
 In the file `dot_env` there are three secrets set. Furthermore in the `secrets` directory these variables need to be stored as files as well.
 
@@ -62,9 +60,9 @@ sudo apt install -y net-tools ca-certificates curl gnupg lsb-release
 ```bash
  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
  sudo apt update; sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
- ```
+```
 
- ### Setup Listmonk user
+### Setup Listmonk user
 
 ```bash
 sudo adduser listmonk --disabled-password --home /app/listmonk
@@ -74,25 +72,25 @@ sudo chown -R listmonk:listmonk /app/listmonk
 
 ### Login as listmonk user
 
-`sudo su - pretalx`
+`sudo su - listmonk`
 
 ## Instance Setup (as listmonk user)
 
-### Populating secrets / sensitive data 
+### Populating secrets / sensitive data
 
 ```bash
-mkdir secrets 
+mkdir secrets
 cd secrets; touch cf_dns_token cf_zone_token traefik_forward_auth; cd ..
 ```
 
 Replace the content of:
 
 - `secrets/cf_dns_token`
-- `secrets/cf_zone_token` 
+- `secrets/cf_zone_token`
 - `secrets/traefik_forward_auth`
 - `.env`
 
-with the earlier collected additional information. 
+with the earlier collected additional information.
 
 ### Putting stateful directories & files in place
 
