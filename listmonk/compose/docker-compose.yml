@@ -1,0 +1,254 @@
+version: "3.9"
+
+x-common-keys-core: &common-keys-core
+  networks:
+    - t2_proxy
+  security_opt:
+    - no-new-privileges:true
+  restart: unless-stopped
+
+networks:
+  t2_proxy:
+    name: t2_proxy
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.90.0/24
+  default:
+    driver: bridge
+  socket_proxy:
+    name: socket_proxy
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.91.0/24
+
+secrets:
+  cf_dns_token:
+    file: ./secrets/cf_dns_token
+  cf_zone_token:
+    file: ./secrets/cf_zone_token
+  traefik_forward_auth:
+    file: ./secrets/traefik_forward_auth
+
+services:
+  traefik:
+    <<: *common-keys-core
+    container_name: traefik
+    image: traefik:2.8
+    command:
+      - --global.checkNewVersion=true
+      - --global.sendAnonymousUsage=true
+      - --entryPoints.http.address=:80
+      - --entryPoints.https.address=:443
+      - --entrypoints.https.forwardedHeaders.trustedIPs=$CLOUDFLARE_IPS
+      - --entryPoints.traefik.address=:8080
+      - --api=true
+      - --api.dashboard=true
+      - --log=true
+      - --log.filePath=/logs/traefik.log
+      - --log.level=INFO
+      - --accessLog=true
+      - --accessLog.filePath=/logs/access.log
+      - --accessLog.bufferingSize=100
+      - --accessLog.filters.statusCodes=204-299,400-499,500-599
+      - --providers.docker=true
+      - --providers.docker.endpoint=tcp://socket-proxy:2375
+      - --providers.docker.exposedByDefault=false
+      - --entrypoints.https.http.tls.options=tls-opts@file
+      - --entrypoints.https.http.tls.certresolver=dns-cloudflare
+      - --providers.docker.network=t2_proxy
+      - --entrypoints.https.http.tls.domains[0].main=$DOMAINNAME0
+      - --entrypoints.https.http.tls.domains[0].sans=*.$DOMAINNAME0
+      - --providers.docker.swarmMode=false
+      - --providers.file.directory=/rules
+      - --providers.file.watch=true
+      - --certificatesResolvers.dns-cloudflare.acme.email=$EMAIL
+      - --certificatesResolvers.dns-cloudflare.acme.storage=/acme.json
+      - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.provider=cloudflare
+      - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.resolvers=1.1.1.1:53,1.0.0.1:53
+      - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.delayBeforeCheck=90
+    networks:
+      t2_proxy:
+        ipv4_address: 192.168.90.254
+      socket_proxy:
+        ipv4_address: 192.168.91.253
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
+    volumes:
+      - ./data/traefik2/rules:/rules
+      - /app/listmonk/data/traefik2/acme/acme.json:/acme.json
+      - ./data/traefik2/logs:/logs
+    environment:
+      - USER_ID=$PUID
+      - GROUP_ID=$PGID
+      - TZ=$TZ
+      - CF_DNS_API_TOKEN_FILE=/run/secrets/cf_dns_token
+      - CF_ZONE_API_TOKEN_FILE=/run/secrets/cf_zone_token
+      - DOMAINNAME0
+      - DOCKER_HOST=tcp://socket-proxy:2375
+    secrets:
+      - cf_token
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.http-catchall.entrypoints=http"
+      - "traefik.http.routers.http-catchall.rule=HostRegexp(`{host:.+}`)"
+      - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.traefik-rtr.entrypoints=https"
+      - "traefik.http.routers.traefik-rtr.rule=Host(`traefik.$DOMAINNAME0`)"
+      - "traefik.http.routers.traefik-rtr.tls=true"
+      - "traefik.http.routers.traefik-rtr.tls.certresolver=dns-cloudflare" # Comment out this line after first run of traefik to force the use of wildcard certs
+      - "traefik.http.routers.traefik-rtr.tls.domains[0].main=$DOMAINNAME0"
+      - "traefik.http.routers.traefik-rtr.tls.domains[0].sans=*.$DOMAINNAME0"
+      - "traefik.http.routers.traefik-rtr.service=api@internal"
+      - "traefik.http.routers.traefik-rtr.middlewares=chain-oauth@file"
+
+  socket-proxy:
+    <<: *common-keys-core
+    container_name: socket-proxy
+    image: tecnativa/docker-socket-proxy
+    networks:
+      socket_proxy:
+        ipv4_address: 192.168.91.254
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    environment:
+      - LOG_LEVEL=info
+      - EVENTS=1
+      - PING=1
+      - VERSION=1
+      - AUTH=1
+      - SECRETS=0
+      - POST=1
+      - BUILD=0
+      - COMMIT=0
+      - CONFIGS=1
+      - CONTAINERS=1
+      - DISTRIBUTION=0
+      - EXEC=0
+      - IMAGES=1
+      - INFO=1
+      - NETWORKS=1
+      - NODES=0
+      - PLUGINS=0
+      - SERVICES=1
+      - SESSION=0
+      - SWARM=0
+      - SYSTEM=1
+      - TASKS=1
+      - VOLUMES=1
+
+  oauth:
+    <<: *common-keys-core
+    container_name: oauth
+    image: thomseddon/traefik-forward-auth:latest
+    environment:
+      - CONFIG=/config
+      - COOKIE_DOMAIN=$DOMAINNAME0
+      - INSECURE_COOKIE=false
+      - AUTH_HOST=oauth.$DOMAINNAME0
+      - URL_PATH=/_oauth
+      - LOG_LEVEL=info
+      - LOG_FORMAT=text
+      - LIFETIME=86400 # 1 day
+      - DEFAULT_ACTION=auth
+      - DEFAULT_PROVIDER=generic-oauth
+    secrets:
+      - source: traefik_forward_auth
+        target: /config
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.oauth-rtr.tls=true"
+      - "traefik.http.routers.oauth-rtr.entrypoints=https"
+      - "traefik.http.routers.oauth-rtr.rule=Host(`oauth.$DOMAINNAME0`)"
+      - "traefik.http.routers.oauth-rtr.middlewares=chain-oauth@file"
+      - "traefik.http.routers.oauth-rtr.service=oauth-svc"
+      - "traefik.http.services.oauth-svc.loadbalancer.server.port=4181"
+
+  cf-companion:
+    <<: *common-keys-core # See EXTENSION FIELDS at the top
+    container_name: cf-companion
+    image: tiredofit/traefik-cloudflare-companion:latest
+    networks:
+      - socket_proxy
+    environment:
+      - TIMEZONE=$TZ
+      - TRAEFIK_VERSION=2
+      - CF_TOKEN=$CLOUDFLARE_DNS_API_TOKEN
+      - TARGET_DOMAIN=$DOMAINNAME0
+      - DOMAIN1=$DOMAINNAME0
+      - DOMAIN1_ZONE_ID=$CLOUDFLARE_ZONEID # Copy from Cloudflare Overview page
+      - DOMAIN1_PROXIED=TRUE
+      - DOCKER_HOST=tcp://socket-proxy:2375
+
+  dockergc:
+    <<: *common-keys-core # See EXTENSION FIELDS at the top
+    image: clockworksoul/docker-gc-cron:latest
+    container_name: docker-gc
+    networks:
+      - socket_proxy
+    volumes:
+      - /app/listmonk/data/docker-gc/docker-gc-exclude:/etc/docker-gc-exclude
+    environment:
+      - CRON="0 0 0 * * ?"
+      - FORCE_IMAGE_REMOVAL=1
+      - FORCE_CONTAINER_REMOVAL=0
+      - GRACE_PERIOD_SECONDS=604800
+      - DRY_RUN=0
+      - CLEAN_UP_VOLUMES=1
+      - TZ=$TZ
+      - DOCKER_HOST=tcp://socket-proxy:2375
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: unless-stopped
+    networks:
+      - t2_proxy
+      - socket_proxy
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:unconfined
+    cap_add:
+      - SYS_PTRACE
+    environment:
+      - DOCKER_HOST=tcp://socket-proxy:2375
+      - TZ=$TZ
+      - WATCHTOWER_NOTIFICATIONS=email
+      - WATCHTOWER_NOTIFICATION_EMAIL_FROM=$SMTP_FROM
+      - WATCHTOWER_NOTIFICATION_EMAIL_TO=$EMAIL
+      - WATCHTOWER_NOTIFICATION_EMAIL_SERVER=$SMTP_SERVER
+      - WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT=$SMTP_PORT
+      - WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER=$SMTP_USER
+      - WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD=$SMTP_PASS
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs
+      - ./data/watchtower:/shared
+    command: --schedule @midnight --cleanup --debug
+
+  listmonk_app:
+    <<: *common-keys-core
+    image: listmonk/listmonk:latest
+    environment:
+      TZ: $TZ
+    container_name: listmonk_app
+    command: "./listmonk --static-dir=/listmonk/static"
+    volumes:
+      - /app/listmonk/data/listmonk/config.toml:/listmonk/config.toml
+      - ./data/listmonk/static:/listmonk/static
+      - ./data/listmonk/uploads:/uploads
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.listmonk-rtr.entrypoints=https"
+      - "traefik.http.routers.listmonk-rtr.rule=Host(`$DOMAINNAME0`)"
+      - "traefik.http.routers.listmonk-rtr.middlewares=chain-oauth@file"
+      - "traefik.http.routers.listmonk-rtr.service=listmonk-svc"
+      - "traefik.http.services.listmonk-svc.loadbalancer.server.port=9000"
