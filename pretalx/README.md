@@ -1,4 +1,4 @@
-# Pretalx Instance Setup
+# Pretalx Setup
 
 ## AWS configuration
 

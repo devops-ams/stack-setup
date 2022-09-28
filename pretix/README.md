@@ -1,4 +1,4 @@
-# Pretix Instance Setup
+# Pretix Setup
 
 ## AWS configuration
 
@@ -43,13 +43,14 @@ sudo chown -R pretix:pretix /etc/pretix/
 
 ```bash
 sudo apt update; sudo apt dist-upgrade; sudo reboot
-sudo apt install -y git build-essential python3-dev libxml2-dev libxslt1-dev libffi-dev zlib1g-dev libssl-dev gettext libpq-dev libjpeg-dev libopenjp2-7-dev python3-virtualenv python3-pip postgresql-client python3.10-venv redis-tools python-is-python3 wget gnupg2 ca-certificates lsb-release ubuntu-keyring software-properties-common nodejs certbot python3-certbot-nginx
+sudo apt install -y git build-essential python3-dev libxml2-dev libxslt1-dev libffi-dev zlib1g-dev libssl-dev gettext libpq-dev libjpeg-dev libopenjp2-7-dev python3-virtualenv python3-pip postgresql-client python3.10-venv redis-tools python-is-python3 wget gnupg2 ca-certificates lsb-release ubuntu-keyring software-properties-common nodejs certbot 
 ```
 
 ### Install NPM
 
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install -y nodejs
 ```
 
 ### Setup apt repo and install nginx
@@ -58,7 +59,7 @@ curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo curl --retry 3 --retry-delay 10 -sSL https://nginx.org/keys/nginx_signing.key | sudo gpg --dearmor --output /usr/share/keyrings/nginx-archive-keyring.gpg
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/mainline/ubuntu `lsb_release -cs` nginx" | sudo tee /etc/apt/sources.list.d/nginx-mainline.list
 echo "deb-src [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/mainline/ubuntu `lsb_release -cs` nginx" | sudo tee -a /etc/apt/sources.list.d/nginx-mainline.list
-sudo apt update; sudo apt install nginx
+sudo apt update; sudo apt install nginx python3-certbot-nginx
 ```
 
 ### Configure Postgres
