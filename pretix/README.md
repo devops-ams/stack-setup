@@ -62,6 +62,17 @@ echo "deb-src [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/n
 sudo apt update; sudo apt install nginx python3-certbot-nginx
 ```
 
+### Create a swapfile
+
+```bash
+APP="pretix"
+sudo dd if=/dev/zero of=/app/$APP/swapfile bs=128M count=32
+sudo chmod 600 /app/$APP/swapfile
+sudo mkswap /app/$APP/swapfile
+sudo swapon /app/$APP/swapfile
+echo "/app/$APP/swapfile swap swap defaults,nofail 0 0" | sudo tee -a /etc/fstab
+```
+
 ### Configure Postgres
 
 #### Connect to AuroraDB Postgres instance
@@ -96,7 +107,7 @@ sudo systemctl enable nginx
 sudo certbot --nginx -d tix.devops.foundation
 sudo cp -v nginx-conf/finish-tix.devops.foundation.conf /etc/nginx/conf.d/tix.devops.foundation.conf
 sudo nginx -t
-sudo nginx restart
+sudo systemctl restart nginx
 ```
 
 ### Pretix setup
@@ -117,11 +128,12 @@ sudo chown pretix:pretix /etc/pretix/pretix.cfg
 ```bash
 python3 -m venv /app/pretix/venv
 source /app/pretix/venv/bin/activate
-pip3 install -U pip setuptools wheel
-pip3 install pretix gunicorn pylibmc
+pip3 install -U pip setuptools wheel psycopg2
+pip3 install pretix gunicorn pylibmc pretix-passbook pretix-fontpack-free
 mkdir -p /app/pretix/data/media
 python -m pretix migrate
 python -m pretix rebuild
+python -m pretix updatestyles
 ```
 
 ### Start 'er up

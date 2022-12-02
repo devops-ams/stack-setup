@@ -54,6 +54,17 @@ echo "deb-src [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/n
 sudo apt update; sudo apt install nginx
 ```
 
+### Create a swapfile
+
+```bash
+APP="pretalx"
+sudo dd if=/dev/zero of=/app/$APP/swapfile bs=128M count=32
+sudo chmod 600 /app/$APP/swapfile
+sudo mkswap /app/$APP/swapfile
+sudo swapon /app/$APP/swapfile
+echo "/app/$APP/swapfile swap swap defaults,nofail 0 0" | sudo tee -a /etc/fstab
+```
+
 ### Configure Postgres
 
 #### Connect to AuroraDB Postgres instance

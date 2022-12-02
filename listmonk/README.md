@@ -62,6 +62,17 @@ sudo apt install -y net-tools ca-certificates curl gnupg lsb-release
  sudo apt update; sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 ```
 
+### Create a swapfile
+
+```bash
+APP="listmonk"
+sudo dd if=/dev/zero of=/app/$APP/swapfile bs=128M count=32
+sudo chmod 600 /app/$APP/swapfile
+sudo mkswap /app/$APP/swapfile
+sudo swapon /app/$APP/swapfile
+echo "/app/$APP/swapfile swap swap defaults,nofail 0 0" | sudo tee -a /etc/fstab
+```
+
 ### Setup Listmonk user
 
 ```bash
