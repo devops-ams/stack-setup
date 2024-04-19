@@ -43,8 +43,8 @@ In the file `dot_env` there are three secrets set. Furthermore in the `secrets` 
 
 ```bash
 sudo mkfs -t ext4 /dev/nvme1n1
-sudo mkdir -p /app/pretalx
-echo "/dev/nvme1n1 /app/pretalx ext4 defaults,nofail 0 0" | sudo tee -a /etc/fstab
+sudo mkdir -p /app/listmonk
+echo "/dev/nvme1n1 /app/listmonk ext4 defaults,nofail 0 0" | sudo tee -a /etc/fstab
 sudo mount -a
 ```
 
